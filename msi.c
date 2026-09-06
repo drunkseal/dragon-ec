@@ -4,6 +4,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/hwmon.h>
+#include <linux/hwmon-sysfs.h>
 #include <linux/platform_device.h>
 #include "msi.h"
 
@@ -381,6 +382,13 @@ static int msi_ec_hwmon_read(struct device *dev, enum hwmon_sensor_types type,
         return -EOPNOTSUPP;
 
     case hwmon_pwm:
+        if (attr == hwmon_pwm_input) {
+            ret = ec_read(channel == 0 ? CPU_FAN_SPEED_ADDR : GPU_FAN_SPEED_ADDR, &output);
+            if (ret)
+                return ret;
+            *val = DIV_ROUND_CLOSEST((int)output * 255, 100);
+            return 0;
+        }
         if (attr == hwmon_pwm_enable) {
             ret = ec_read(FAN_MODE_ADDR, &output);
             if (ret)
@@ -460,8 +468,8 @@ static const struct hwmon_channel_info * const msi_ec_hwmon_info[] = {
                        HWMON_F_INPUT,
                        HWMON_F_INPUT),
     HWMON_CHANNEL_INFO(pwm,
-                       HWMON_PWM_ENABLE,
-                       HWMON_PWM_ENABLE),
+                       HWMON_PWM_INPUT | HWMON_PWM_ENABLE,
+                       HWMON_PWM_INPUT | HWMON_PWM_ENABLE),
     NULL
 };
 
@@ -469,6 +477,93 @@ static const struct hwmon_channel_info * const msi_ec_hwmon_info[] = {
 static const struct hwmon_chip_info msi_ec_chip_info = {
     .ops = &msi_ec_hwmon_ops,
     .info = msi_ec_hwmon_info,
+};
+
+
+static ssize_t fan_auto_point_pwm_show(struct device *dev,
+                                       struct device_attribute *attr,
+                                       char *buf)
+{
+    struct sensor_device_attribute_2 *sattr = to_sensor_dev_attr_2(attr);
+    u8 base = (sattr->nr == 0) ? CPU_FAN_SPEED_CONFIG_ADDR : GPU_FAN_SPEED_CONFIG_ADDR;
+    u8 pct;
+    int ret;
+
+    ret = ec_read(base + sattr->index, &pct);
+    if (ret)
+        return ret;
+
+    return sysfs_emit(buf, "%d\n", DIV_ROUND_CLOSEST((int)pct * 255, 100));
+}
+
+
+static ssize_t fan_auto_point_pwm_store(struct device *dev,
+                                        struct device_attribute *attr,
+                                        const char *buf, size_t count)
+{
+    struct sensor_device_attribute_2 *sattr = to_sensor_dev_attr_2(attr);
+    u8 base = (sattr->nr == 0) ? CPU_FAN_SPEED_CONFIG_ADDR : GPU_FAN_SPEED_CONFIG_ADDR;
+    unsigned int pwm_val;
+    u8 pct;
+    int ret;
+
+    ret = kstrtouint(buf, 10, &pwm_val);
+    if (ret)
+        return ret;
+
+    if (pwm_val > 255)
+        return -EINVAL;
+
+    pct = DIV_ROUND_CLOSEST(pwm_val * 100, 255);
+
+    ret = ec_write(base + sattr->index, pct);
+    if (ret)
+        return ret;
+
+    return count;
+}
+
+
+static SENSOR_DEVICE_ATTR_2_RW(pwm1_auto_point1_pwm, fan_auto_point_pwm, 0, 0);
+static SENSOR_DEVICE_ATTR_2_RW(pwm1_auto_point2_pwm, fan_auto_point_pwm, 0, 1);
+static SENSOR_DEVICE_ATTR_2_RW(pwm1_auto_point3_pwm, fan_auto_point_pwm, 0, 2);
+static SENSOR_DEVICE_ATTR_2_RW(pwm1_auto_point4_pwm, fan_auto_point_pwm, 0, 3);
+static SENSOR_DEVICE_ATTR_2_RW(pwm1_auto_point5_pwm, fan_auto_point_pwm, 0, 4);
+static SENSOR_DEVICE_ATTR_2_RW(pwm1_auto_point6_pwm, fan_auto_point_pwm, 0, 5);
+
+static SENSOR_DEVICE_ATTR_2_RW(pwm2_auto_point1_pwm, fan_auto_point_pwm, 1, 0);
+static SENSOR_DEVICE_ATTR_2_RW(pwm2_auto_point2_pwm, fan_auto_point_pwm, 1, 1);
+static SENSOR_DEVICE_ATTR_2_RW(pwm2_auto_point3_pwm, fan_auto_point_pwm, 1, 2);
+static SENSOR_DEVICE_ATTR_2_RW(pwm2_auto_point4_pwm, fan_auto_point_pwm, 1, 3);
+static SENSOR_DEVICE_ATTR_2_RW(pwm2_auto_point5_pwm, fan_auto_point_pwm, 1, 4);
+static SENSOR_DEVICE_ATTR_2_RW(pwm2_auto_point6_pwm, fan_auto_point_pwm, 1, 5);
+
+
+static struct attribute *msi_hwmon_auto_point_attrs[] = {
+    &sensor_dev_attr_pwm1_auto_point1_pwm.dev_attr.attr,
+    &sensor_dev_attr_pwm1_auto_point2_pwm.dev_attr.attr,
+    &sensor_dev_attr_pwm1_auto_point3_pwm.dev_attr.attr,
+    &sensor_dev_attr_pwm1_auto_point4_pwm.dev_attr.attr,
+    &sensor_dev_attr_pwm1_auto_point5_pwm.dev_attr.attr,
+    &sensor_dev_attr_pwm1_auto_point6_pwm.dev_attr.attr,
+    &sensor_dev_attr_pwm2_auto_point1_pwm.dev_attr.attr,
+    &sensor_dev_attr_pwm2_auto_point2_pwm.dev_attr.attr,
+    &sensor_dev_attr_pwm2_auto_point3_pwm.dev_attr.attr,
+    &sensor_dev_attr_pwm2_auto_point4_pwm.dev_attr.attr,
+    &sensor_dev_attr_pwm2_auto_point5_pwm.dev_attr.attr,
+    &sensor_dev_attr_pwm2_auto_point6_pwm.dev_attr.attr,
+    NULL
+};
+
+
+static const struct attribute_group msi_hwmon_auto_point_group = {
+    .attrs = msi_hwmon_auto_point_attrs,
+};
+
+
+static const struct attribute_group *msi_hwmon_groups[] = {
+    &msi_hwmon_auto_point_group,
+    NULL
 };
 
 
@@ -482,8 +577,8 @@ static int msi_ec_probe(struct platform_device *pdev)
         return -ENODEV;
     }
 
-    hwmon = devm_hwmon_device_register_with_info(&pdev->dev, "dragon-ec", NULL,
-                                                 &msi_ec_chip_info, NULL);
+    hwmon = devm_hwmon_device_register_with_info(&pdev->dev, "dragon_ec", NULL,
+                                                 &msi_ec_chip_info, msi_hwmon_groups);
     if (IS_ERR(hwmon)) {
         pr_err("ec: hwmon registration failed: %ld\n", PTR_ERR(hwmon));
         return PTR_ERR(hwmon);

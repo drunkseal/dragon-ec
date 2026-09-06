@@ -94,14 +94,17 @@ echo turbo | sudo tee /sys/devices/platform/dragon_ec/performance_mode
 
 ### hwmon Interface
 
-The module registers with the hwmon subsystem as `dragon-ec`, compatible with standard tools like `lm-sensors`:
+The module registers with the hwmon subsystem as `dragon_ec`, compatible with standard tools like `lm-sensors`:
 
 | Channel | Type | Description |
 |---|---|---|
 | `temp1_input` / `temp2_input` | temp | CPU / GPU temperature (millidegrees C) |
 | `temp1_label` / `temp2_label` | temp | `CPU` / `GPU` |
 | `fan1_input` / `fan2_input` | fan | CPU / GPU fan RPM |
+| `pwm1` / `pwm2` | pwm | Current CPU / GPU fan speed (0-255) |
 | `pwm1_enable` / `pwm2_enable` | pwm | Fan mode: 0=off, 1=advanced, 2=auto |
+| `pwm1_auto_point[1-6]_pwm` | pwm | CPU 6-point fan curve duty cycle (0-255) |
+| `pwm2_auto_point[1-6]_pwm` | pwm | GPU 6-point fan curve duty cycle (0-255) |
 
 ## EC Register Map
 
