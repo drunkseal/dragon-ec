@@ -38,112 +38,7 @@ static ssize_t ec_write_check(u8 addr, u8 value, size_t count)
 }
 
 
-static ssize_t cpu_fan_speed_config_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-    u8 output[FAN_SPEED_CONFIG_NUM];
-    int i;
 
-    for (i = 0; i < FAN_SPEED_CONFIG_NUM; i++) {
-        int ret = ec_read(CPU_FAN_SPEED_CONFIG_ADDR + i, &output[i]);
-        if (ret)
-            return ret;
-    }
-
-    return sysfs_emit(buf, "%d %d %d %d %d %d\n",
-                      output[0], output[1], output[2],
-                      output[3], output[4], output[5]);
-}
-
-
-static ssize_t cpu_fan_speed_config_store(struct device *dev, struct device_attribute *attr,
-                                          const char *buf, size_t count)
-{
-    int input[FAN_SPEED_CONFIG_NUM];
-    int i;
-
-    if (sscanf(buf, "%d %d %d %d %d %d",
-               &input[0], &input[1], &input[2],
-               &input[3], &input[4], &input[5]) != FAN_SPEED_CONFIG_NUM)
-        return -EINVAL;
-
-    for (i = 0; i < FAN_SPEED_CONFIG_NUM; i++)
-        if (input[i] < 0 || input[i] > 100)
-            return -EINVAL;
-
-    for (i = 0; i < FAN_SPEED_CONFIG_NUM; i++) {
-        int ret = ec_write(CPU_FAN_SPEED_CONFIG_ADDR + i, input[i]);
-        if (ret)
-            return ret;
-    }
-
-    return count;
-}
-
-
-static ssize_t gpu_fan_speed_config_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-    u8 output[FAN_SPEED_CONFIG_NUM];
-    int i;
-
-    for (i = 0; i < FAN_SPEED_CONFIG_NUM; i++) {
-        int ret = ec_read(GPU_FAN_SPEED_CONFIG_ADDR + i, &output[i]);
-        if (ret)
-            return ret;
-    }
-
-    return sysfs_emit(buf, "%d %d %d %d %d %d\n",
-                      output[0], output[1], output[2],
-                      output[3], output[4], output[5]);
-}
-
-
-static ssize_t gpu_fan_speed_config_store(struct device *dev, struct device_attribute *attr,
-                                          const char *buf, size_t count)
-{
-    int input[FAN_SPEED_CONFIG_NUM];
-    int i;
-
-    if (sscanf(buf, "%d %d %d %d %d %d",
-               &input[0], &input[1], &input[2],
-               &input[3], &input[4], &input[5]) != FAN_SPEED_CONFIG_NUM)
-        return -EINVAL;
-
-    for (i = 0; i < FAN_SPEED_CONFIG_NUM; i++)
-        if (input[i] < 0 || input[i] > 100)
-            return -EINVAL;
-
-    for (i = 0; i < FAN_SPEED_CONFIG_NUM; i++) {
-        int ret = ec_write(GPU_FAN_SPEED_CONFIG_ADDR + i, input[i]);
-        if (ret)
-            return ret;
-    }
-
-    return count;
-}
-
-
-static ssize_t cpu_fan_speed_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-    u8 output;
-    int ret = ec_read(CPU_FAN_SPEED_ADDR, &output);
-
-    if (ret)
-        return ret;
-
-    return sysfs_emit(buf, "%d\n", (int)output);
-}
-
-
-static ssize_t gpu_fan_speed_show(struct device *dev, struct device_attribute *attr, char *buf)
-{
-    u8 output;
-    int ret = ec_read(GPU_FAN_SPEED_ADDR, &output);
-
-    if (ret)
-        return ret;
-
-    return sysfs_emit(buf, "%d\n", (int)output);
-}
 
 
 static ssize_t performance_mode_show(struct device *dev, struct device_attribute *attr, char *buf)
@@ -312,20 +207,12 @@ static ssize_t backlight_led_show(struct device *dev, struct device_attribute *a
 }
 
 
-static DEVICE_ATTR_RW(cpu_fan_speed_config);
-static DEVICE_ATTR_RW(gpu_fan_speed_config);
-static DEVICE_ATTR_RO(cpu_fan_speed);
-static DEVICE_ATTR_RO(gpu_fan_speed);
 static DEVICE_ATTR_RW(performance_mode);
 static DEVICE_ATTR_RW(cooler_boost);
 static DEVICE_ATTR_RO(backlight_led);
 
 
 static struct attribute *msi_ec_attrs[] = {
-    &dev_attr_cpu_fan_speed_config.attr,
-    &dev_attr_gpu_fan_speed_config.attr,
-    &dev_attr_cpu_fan_speed.attr,
-    &dev_attr_gpu_fan_speed.attr,
     &dev_attr_performance_mode.attr,
     &dev_attr_cooler_boost.attr,
     &dev_attr_backlight_led.attr,

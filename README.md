@@ -71,20 +71,10 @@ The module creates a platform device `dragon_ec` with the following attributes:
 
 | Attribute | R/W | Description |
 |---|---|---|
-| `cpu_fan_speed_config` | RW | 6-value CPU fan curve (space-separated, 0-100 each) |
-| `gpu_fan_speed_config` | RW | 6-value GPU fan curve (space-separated, 0-100 each) |
-| `cpu_fan_speed` | RO | Current CPU fan speed (%) |
-| `gpu_fan_speed` | RO | Current GPU fan speed (%) |
 | `performance_mode` | RW | `low`, `medium`, `high`, `turbo`, or `auto` |
 | `cooler_boost` | RW | `on` or `off` |
 | `backlight_led` | RO | `off`, `low`, `medium`, or `high` |
 | `charge_control_end_threshold` | RW | Battery charge limit (50-100, multiples of 10) |
-
-Example -- set CPU fan curve:
-
-```bash
-echo "30 40 50 60 80 100" | sudo tee /sys/devices/platform/dragon_ec/cpu_fan_speed_config
-```
 
 Example -- set performance mode to turbo:
 
